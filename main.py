@@ -20,7 +20,7 @@ from fitness_functions import bukin6, holder_table, cross_in_tray
 
 
 class GeneticIslands:
-    def __init__(self, func, n=20, n_iter=20000, n_islands=5, init_mult=10):
+    def __init__(self, func, n=20, n_iter=10000, n_islands=5, init_mult=10, exch=1):
         self.func = func
         self.n = n
         self.n_iter = n_iter
@@ -28,6 +28,7 @@ class GeneticIslands:
         self.n_islands = n_islands
         self.init_mult = init_mult
         self.generate_random_population()
+        self.ex = exch
 
     # начальная случайная популяция
     def generate_random_population(self):
@@ -58,9 +59,12 @@ class GeneticIslands:
                 self.mutate(newPop)
             for j, island in enumerate(self.population):
                 ind = 0
-                for comb in combinations(range(len(island)), 2):
-                    a = island[comb[0]]
-                    b = island[comb[1]]
+                for _ in range(self.n):
+                    first_index = np.random.randint(len(island))
+                    a = island[first_index]
+                    candidates = [(p, np.sqrt((a[0] - p[0])**2) + (a[1] - p[1])**2) for k, p in enumerate(island) if k != first_index]
+                    sorted_cand = sorted(candidates, key=lambda x: x[1])
+                    b = sorted_cand[-1][0]
                     c, d = self.crossover(a, b)
                     newPop[j].append(c)
                     newPop[j].append(d)
@@ -100,26 +104,29 @@ class GeneticIslands:
     def exchange(self):
         pop_copy = copy.deepcopy(self.population)
         for comb in combinations(range(self.n_islands), 2):
-            self.population[comb[0]][0], self.population[comb[0]][1] = pop_copy[comb[1]][0], pop_copy[comb[1]][1]
+            for i in range(self.ex):
+                self.population[comb[0]][i] = pop_copy[comb[1]][i]
 
 
-if __name__ == '__main__':
-    g = GeneticIslands(func=bukin6, init_mult=-10, n_iter=20000)
+def process_function(func, x_lim, y_lim, init_mult, n_islands=5, n_iter=10000):
+    g = GeneticIslands(func=func, init_mult=init_mult, n_islands=n_islands, n_iter=n_iter)
     g.epoch()
-
     fig = plt.figure()
     ax = fig.gca(projection='3d')
-
-    X = np.arange(-15, -5, 0.1)
-    Y = np.arange(-3, 3, 0.1)
+    X = np.arange(x_lim[0], x_lim[1], 0.1)
+    Y = np.arange(y_lim[0], y_lim[1], 0.1)
     X, Y = np.meshgrid(X, Y)
-    Z = bukin6(X, Y)
-
+    Z = func(X, Y)
     surf = ax.plot_surface(X, Y, Z, cmap=cm.coolwarm, linewidth=0, antialiased=False)
     for island in g.population:
         x_coords = np.array([ind[0] for ind in island])
         y_coords = np.array([ind[1] for ind in island])
-        z_coords = bukin6(x_coords, y_coords)
+        z_coords = func(x_coords, y_coords)
         ax.scatter(x_coords, y_coords, z_coords)
-
     plt.show()
+
+
+if __name__ == '__main__':
+    process_function(bukin6, (-15, -5), (-3, 3), -10, 5, 10000)
+    process_function(holder_table, (-10, 10), (-10, 10), 10)
+    process_function(cross_in_tray, (-10, 10), (-10, 10), 10)
