@@ -11,13 +11,6 @@ from matplotlib import cm
 
 from fitness_functions import bukin6, holder_table, cross_in_tray
 
-# функция для оптимизации
-# func = lambda x, y: (x - 5) ** 2 + (y - 1) ** 2
-# func = lambda x, y: (x - 5) ** 2 + (y - 1) ** 2
-# func = lambda x, y: (x - 5) ** 2 + (y - 1) ** 2
-# func = lambda x, y: 100 * np.sqrt(np.abs(y - 0.01 * x ** 2)) + 0.01 * np.abs(x + 10)  # Bukin function N.6 min = 0
-# func = lambda x, y: - np.cos(x) * np.cos(y) * np.exp(- ((x - np.pi) ** 2 + (y - np.pi) ** 2))  # Easom function  min -1
-
 
 class GeneticIslands:
     def __init__(self, func, n=40, n_iter=10000, n_islands=5, init_mult=10, exch=2):
@@ -141,5 +134,5 @@ def process_function(func, x_lim, y_lim, init_mult, n_islands=5, n_iter=10000, n
 
 if __name__ == '__main__':
     process_function(bukin6, (-15, -5), (-3, 3), -20, 8, 100000, 50)
-    # process_function(holder_table, (-10, 10), (-10, 10), 20)
-    # process_function(cross_in_tray, (-10, 10), (-10, 10), 20)
+    process_function(holder_table, (-10, 10), (-10, 10), 20)
+    process_function(cross_in_tray, (-10, 10), (-10, 10), 20)
