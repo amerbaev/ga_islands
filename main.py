@@ -132,7 +132,11 @@ def process_function(func, x_lim, y_lim, init_mult, n_islands=5, n_iter=10000, n
     plt.show()
 
 
-if __name__ == '__main__':
+def main():
     process_function(bukin6, (-15, -5), (-3, 3), -20, 8, 100000, 50)
     process_function(holder_table, (-10, 10), (-10, 10), 20)
     process_function(cross_in_tray, (-10, 10), (-10, 10), 20)
+
+
+if __name__ == '__main__':
+    main()
