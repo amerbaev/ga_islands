@@ -13,7 +13,7 @@ from fitness_functions import bukin6, holder_table, cross_in_tray
 
 
 class GeneticIslands:
-    def __init__(self, func, n=40, n_iter=10000, n_islands=5, init_mult=10, exch=2):
+    def __init__(self, func, n=20, n_iter=10000, n_islands=5, init_mult=10, exch=1, exchange_rate=100, precision=4):
         self.func = func
         self.n = n
         self.n_iter = n_iter
@@ -25,6 +25,8 @@ class GeneticIslands:
         self.best_ind = None
         self.best_mean = None
         self.top = 0
+        self.exchange_rate = exchange_rate
+        self.precision = precision
 
     # начальная случайная популяция
     def generate_random_population(self):
@@ -48,10 +50,10 @@ class GeneticIslands:
 
     def epoch(self):
         for i in tqdm(range(self.n_iter)):
-            if i % 100 == 0 and i != 0:
+            if i % self.exchange_rate == 0 and i != 0:
                 self.exchange()
             newPop = copy.deepcopy(self.population)
-            if np.random.rand() < 1 / (self.n * self.n_islands):
+            if np.random.rand() < 1 / self.n:
                 self.mutate(newPop)
             for j, island in enumerate(self.population):
                 ind = 0
@@ -68,17 +70,17 @@ class GeneticIslands:
                     if ind >= self.n:
                         break
             self.selection(newPop)
+            self.population = np.round(self.population, self.precision).tolist()
             islands_best = [(island[0], self.func(island[0][0], island[0][1])) for island in self.population]
             islands_best = sorted(islands_best, key=lambda x: x[1])
             best_mean_point = np.mean([ind[0] for ind in islands_best], axis=0)
             new_best = islands_best[0][0]
-            if self.best_ind is not None and self.best_mean is not None and new_best == self.best_ind and abs(sum(self.best_mean - best_mean_point)) < 10 ** -5:
+            if self.best_ind is not None and self.best_mean is not None and new_best == self.best_ind:
                 self.top += 1
             else:
                 self.best_ind = new_best
-                self.best_mean = best_mean_point
                 self.top = 0
-            if self.top > self.n_islands * 100:
+            if self.top > self.n_islands * self.exchange_rate * 2:
                 break
         print(self.best_ind, self.func(self.best_ind[0], self.best_ind[1]))
         return self.best_ind
@@ -133,7 +135,7 @@ def process_function(func, x_lim, y_lim, init_mult, n_islands=5, n_iter=10000, n
 
 
 def main():
-    process_function(bukin6, (-15, -5), (-3, 3), -20, 8, 100000, 50)
+    process_function(bukin6, (-15, -5), (-3, 3), -20, 5, 100000, 50)
     process_function(holder_table, (-10, 10), (-10, 10), 20)
     process_function(cross_in_tray, (-10, 10), (-10, 10), 20)
 
