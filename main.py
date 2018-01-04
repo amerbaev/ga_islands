@@ -13,7 +13,7 @@ from fitness_functions import bukin6, holder_table, cross_in_tray
 
 
 class GeneticIslands:
-    def __init__(self, func, n=20, n_iter=10000, n_islands=5, init_mult=10, exch=1, exchange_rate=100, precision=4):
+    def __init__(self, func, n=20, n_iter=10000, n_islands=5, init_mult=10, exch=1, exchange_rate=100, precision=6):
         self.func = func
         self.n = n
         self.n_iter = n_iter
@@ -135,7 +135,7 @@ def process_function(func, x_lim, y_lim, init_mult, n_islands=5, n_iter=10000, n
 
 
 def main():
-    process_function(bukin6, (-15, -5), (-3, 3), -20, 5, 100000, 50)
+    # process_function(bukin6, (-15, -5), (-3, 3), -20, 5, 100000, 50)
     process_function(holder_table, (-10, 10), (-10, 10), 20)
     process_function(cross_in_tray, (-10, 10), (-10, 10), 20)
 
