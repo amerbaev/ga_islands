@@ -1,7 +1,4 @@
-from itertools import combinations
-
 import numpy as np
-from tqdm import tqdm
 import copy
 import deap.tools
 
@@ -13,7 +10,7 @@ from fitness_functions import bukin6, holder_table, cross_in_tray
 
 
 class GeneticIslands:
-    def __init__(self, func, n=20, n_iter=10000, n_islands=5, init_mult=10, exch=1, exchange_rate=100, precision=6):
+    def __init__(self, func, n=20, n_iter=10000, n_islands=5, init_mult=10, exch=2, exchange_rate=100, precision=4):
         self.func = func
         self.n = n
         self.n_iter = n_iter
@@ -27,6 +24,7 @@ class GeneticIslands:
         self.top = 0
         self.exchange_rate = exchange_rate
         self.precision = precision
+        self.edge = self.n_islands * self.exchange_rate * self.precision * np.e
 
     # начальная случайная популяция
     def generate_random_population(self):
@@ -36,11 +34,8 @@ class GeneticIslands:
     def sort_fitness(self, population):
         sorted_population = []
         for i, isl in enumerate(population):
-            # print(isl)
             fitness = [(j, self.func(ind[0], ind[1])) for j, ind in enumerate(isl)]
-            # print(len(fitness))
             sorted_fitness = sorted(fitness, key=lambda x: x[1])
-            # print(sorted_fitness)
             sorted_population.append([isl[num[0]] for num in sorted_fitness])
         return sorted_population
 
@@ -49,12 +44,12 @@ class GeneticIslands:
             self.population[i] = island[:self.n]
 
     def epoch(self):
-        for i in tqdm(range(self.n_iter)):
+        for i in range(self.n_iter):
             if i % self.exchange_rate == 0 and i != 0:
                 self.exchange()
             newPop = copy.deepcopy(self.population)
-            if np.random.rand() < 1 / self.n:
-                self.mutate(newPop)
+            if np.random.rand() < 1 * (self.top / self.edge) / self.n:
+                self.mutate(self.sort_fitness(newPop))
             for j, island in enumerate(self.population):
                 ind = 0
                 for _ in range(self.n):
@@ -69,18 +64,23 @@ class GeneticIslands:
                     ind += 1
                     if ind >= self.n:
                         break
+            newPop = np.round(newPop, self.precision).tolist()
             self.selection(newPop)
-            self.population = np.round(self.population, self.precision).tolist()
-            islands_best = [(island[0], self.func(island[0][0], island[0][1])) for island in self.population]
-            islands_best = sorted(islands_best, key=lambda x: x[1])
-            best_mean_point = np.mean([ind[0] for ind in islands_best], axis=0)
-            new_best = islands_best[0][0]
-            if self.best_ind is not None and self.best_mean is not None and new_best == self.best_ind:
+            islands_best = [(island[0], self.func(island[0][0], island[0][1])) for island in self.sort_fitness(self.population)]
+            total_best = sorted(islands_best, key=lambda x: x[1])
+            # mean = np.round(np.mean(self.population, axis=1), self.precision - 1)[0].tolist()
+            new_best = total_best[0][0]
+            if self.best_ind is not None and new_best == self.best_ind:
+                # if self.best_mean == mean:
+                #     self.top += 1
+                # else:
+                #     self.top = 0
+                #     self.best_mean = mean
                 self.top += 1
             else:
                 self.best_ind = new_best
                 self.top = 0
-            if self.top > self.n_islands * self.exchange_rate * 2:
+            if self.top > self.edge:
                 break
         print(self.best_ind, self.func(self.best_ind[0], self.best_ind[1]))
         return self.best_ind
@@ -91,13 +91,12 @@ class GeneticIslands:
 
         return o1, o2
 
-    @staticmethod
-    def sigma():
+    def sigma(self):
         m = 20
         s = 0
         for i in range(m):
             if np.random.random() > 1 / m:
-                s += 2 ** (-i)
+                s += 2 ** (-i) * self.top
         return s
 
     def mutate(self, population):
@@ -108,16 +107,21 @@ class GeneticIslands:
             a = lambda: (-1 if np.random.random() < 0.5 else 1) * 0.5 * self.sigma()
             mutated_population = np.array([np.array([i[0] + a(), i[1] + a()]) for i in island[1:]])
             self.population[i] = np.vstack((np.array(island[0]), mutated_population)).tolist()
+        # for i in self.population:
+        #     print(i)
 
     def exchange(self):
+        # print(*self.population, sep='\n')
         pop_copy = copy.deepcopy(self.population)
-        for comb in combinations(range(self.n_islands), 2):
-            for i in range(self.ex):
-                self.population[comb[0]][i] = pop_copy[comb[1]][i]
+        exch_index = np.arange(self.n_islands)
+        np.random.shuffle(exch_index)
+        for i, _ in enumerate(self.population):
+            for j in range(self.ex):
+                self.population[i][j] = pop_copy[exch_index[i]][j]
 
 
-def process_function(func, x_lim, y_lim, init_mult, n_islands=5, n_iter=10000, n=20):
-    g = GeneticIslands(func=func, init_mult=init_mult, n_islands=n_islands, n_iter=n_iter, n=n)
+def process_function(func, x_lim, y_lim, init_mult, n_islands=5, n_iter=10000, n=20, prec=4):
+    g = GeneticIslands(func=func, init_mult=init_mult, n_islands=n_islands, n_iter=n_iter, n=n, precision=prec)
     g.epoch()
     fig = plt.figure()
     ax = fig.gca(projection='3d')
@@ -135,9 +139,9 @@ def process_function(func, x_lim, y_lim, init_mult, n_islands=5, n_iter=10000, n
 
 
 def main():
-    # process_function(bukin6, (-15, -5), (-3, 3), -20, 5, 100000, 50)
-    process_function(holder_table, (-10, 10), (-10, 10), 20)
-    process_function(cross_in_tray, (-10, 10), (-10, 10), 20)
+    process_function(bukin6, x_lim=(-15, -5), y_lim=(-3, 3), init_mult=-20, n_islands=5, n_iter=10000, n=40, prec=2)
+    process_function(holder_table, (-10, 10), (-10, 10), 20, prec=5)
+    process_function(cross_in_tray, (-10, 10), (-10, 10), 20, prec=5)
 
 
 if __name__ == '__main__':
